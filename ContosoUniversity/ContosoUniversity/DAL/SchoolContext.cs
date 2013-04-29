@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Data.Entity.ModelConfiguration.Conventions;
-using ContosoUniversity.Models;
+using ContosoUniversity;
 using System.Data.Entity;
 
 namespace ContosoUniversity.Models
