@@ -36,7 +36,7 @@ namespace ContosoUniversity.Controllers
 
         //
         // GET: /Student/Create
-
+        [HttpGet]
         public ActionResult Create()
         {
             return View();
@@ -49,19 +49,26 @@ namespace ContosoUniversity.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Create(Student student)
         {
-            if (ModelState.IsValid)
+            try
             {
-                db.Students.Add(student);
-                db.SaveChanges();
-                return RedirectToAction("Index");
+                if (ModelState.IsValid)
+                {
+                    db.Students.Add(student);
+                    db.SaveChanges();
+                    return RedirectToAction("Index");
+                }
             }
-
+            catch (DataException)
+            {
+                //Log the error (add a variable name after DataException) 
+                ModelState.AddModelError("", "Unable to save changes. Try again, and if the problem persists see your system administrator.");
+            }
             return View(student);
         }
 
         //
         // GET: /Student/Edit/5
-
+        [HttpGet]
         public ActionResult Edit(int id = 0)
         {
             Student student = db.Students.Find(id);
@@ -79,11 +86,19 @@ namespace ContosoUniversity.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Edit(Student student)
         {
-            if (ModelState.IsValid)
+            try
             {
-                db.Entry(student).State = EntityState.Modified;
-                db.SaveChanges();
-                return RedirectToAction("Index");
+                if (ModelState.IsValid)
+                {
+                    db.Entry(student).State = EntityState.Modified;
+                    db.SaveChanges();
+                    return RedirectToAction("Index");
+                }
+            }
+            catch (DataException)
+            {
+            //Log the error (add a variable name after DataException) 
+                ModelState.AddModelError("", "Unable to save changes. Try again, and if the problem persists see your system administrator."); 
             }
             return View(student);
         }
