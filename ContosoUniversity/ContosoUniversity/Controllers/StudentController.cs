@@ -6,6 +6,7 @@ using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 using ContosoUniversity.Models;
+using PagedList;
 
 namespace ContosoUniversity.Controllers
 {
@@ -16,9 +17,46 @@ namespace ContosoUniversity.Controllers
         //
         // GET: /Student/
 
-        public ActionResult Index()
+        public ViewResult Index(string sortOrder, string currentFilter, string searchString, int? page)
         {
-            return View(db.Students.ToList());
+            ViewBag.CurrentSort = sortOrder;
+            ViewBag.NameSortParm = String.IsNullOrEmpty(sortOrder) ? "Name desc" : "";
+            ViewBag.DateSortParm = sortOrder == "Date" ? "Date desc" : "Date";
+
+            if (Request.HttpMethod == "GET")
+            {
+                searchString = currentFilter;
+            }
+            else
+            {
+                page = 1;
+            }
+            ViewBag.CurrentFilter = searchString;
+            var students = from s in db.Students
+                           select s;
+            if (!String.IsNullOrEmpty(searchString))
+            {
+                students = students.Where(s => s.LastName.ToUpper().Contains(searchString.ToUpper()) ||
+s.FirstMidName.ToUpper().Contains(searchString.ToUpper()));
+            }
+            switch (sortOrder)
+            {
+                case "Name desc":
+                    students = students.OrderByDescending(s => s.LastName);
+                    break;
+                case "Date":
+                    students = students.OrderBy(s => s.EnrollmentDate);
+                    break;
+                case "Date desc":
+                    students = students.OrderByDescending(s => s.EnrollmentDate);
+                    break;
+                default:
+                    students = students.OrderBy(s => s.LastName);
+                    break;
+            }
+            int pageSize = 3;
+            int pageIndex = (page ?? 2) - 1;
+            return View(students.ToPagedList(pageIndex, pageSize));
         }
 
         //
@@ -97,21 +135,21 @@ namespace ContosoUniversity.Controllers
             }
             catch (DataException)
             {
-            //Log the error (add a variable name after DataException) 
-                ModelState.AddModelError("", "Unable to save changes. Try again, and if the problem persists see your system administrator."); 
+                //Log the error (add a variable name after DataException) 
+                ModelState.AddModelError("", "Unable to save changes. Try again, and if the problem persists see your system administrator.");
             }
             return View(student);
         }
 
         //
         // GET: /Student/Delete/5
-
-        public ActionResult Delete(int id = 0)
+        [HttpGet]
+        public ActionResult Delete(int id, bool? saveChangesError)
         {
             Student student = db.Students.Find(id);
-            if (student == null)
+            if (saveChangesError.GetValueOrDefault())
             {
-                return HttpNotFound();
+                ViewBag.ErrorMessage = "Unable to save changes. Try again, and if the problem persists see your system administrator.";
             }
             return View(student);
         }
@@ -123,9 +161,20 @@ namespace ContosoUniversity.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult DeleteConfirmed(int id)
         {
-            Student student = db.Students.Find(id);
-            db.Students.Remove(student);
-            db.SaveChanges();
+            try
+            {
+                Student student = db.Students.Find(id);
+                db.Students.Remove(student);
+                db.SaveChanges();
+            }
+            catch (DataException)
+            {
+                //Log the error (add a variable name after DataException) 
+                return RedirectToAction("Delete",
+                    new System.Web.Routing.RouteValueDictionary {  
+                { "id", id },  
+                { "saveChangesError", true } });
+            }
             return RedirectToAction("Index");
         }
 
